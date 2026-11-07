@@ -3,6 +3,7 @@ import { Check, Search, UploadCloud } from 'lucide-react';
 import { useToast } from '../../hooks/contexts';
 import { useApi } from '../../hooks/useApi';
 import { errorMessage, qs, upload } from '../../lib/api';
+import { MAX_UPLOAD_BYTES, prepareImage } from '../../lib/image';
 import { Modal } from './kit';
 import { EmptyState, ErrorState, Spinner } from '../ui';
 
@@ -42,9 +43,15 @@ export function useUploader(onDone?: (items: MediaItem[]) => void) {
       setBusy(true);
       const uploaded: MediaItem[] = [];
       try {
-        for (let i = 0; i < files.length; i += 5) {
+        // Satu file per request: batas isi request di hosting serverless (Vercel 4,5 MB) berlaku per request.
+        for (const original of files) {
+          const file = await prepareImage(original);
+          if (file.size > MAX_UPLOAD_BYTES) {
+            toast.error(`${original.name}: ukuran melebihi 4 MB. Perkecil file, atau untuk video gunakan tautan YouTube.`);
+            continue;
+          }
           const form = new FormData();
-          files.slice(i, i + 5).forEach((f) => form.append('files', f));
+          form.append('files', file);
           try {
             const res = await upload<{ items: MediaItem[]; errors: { name: string; error: string }[] }>('/admin/media', form);
             uploaded.push(...res.items);

@@ -14,6 +14,8 @@ import { startBackupScheduler } from './services/backup.js';
 import { bootServices, flushServices } from './services/boot.js';
 import { buildRobots, buildRss, buildSitemap, renderHead } from './services/seo.js';
 import { SupabaseSessionStore } from './services/sessionStore.js';
+import { flushDue } from './services/stats.js';
+import { ensureFresh } from './services/sync.js';
 import { listUsers } from './services/users.js';
 import { errorHandler } from './utils/http.js';
 
@@ -39,6 +41,19 @@ export async function createApp() {
     app.use(`/${folder}`, express.static(path.join(config.root, 'public', folder), { index: false, maxAge: '7d' }));
     app.use(`/${folder}`, express.static(path.join(dist, folder), { index: false, maxAge: '7d' }));
   }
+
+  // Beberapa instance serverless berjalan bersamaan: sebelum melayani request, pastikan cache di memori
+  // instance ini sama dengan database, dan simpan statistik yang tertunda. Kegagalan di sini tidak
+  // boleh menjatuhkan request; instance memakai cache terakhirnya.
+  app.use(async (_req, _res, next) => {
+    try {
+      await ensureFresh();
+      await flushDue();
+    } catch (err) {
+      console.error('[sync] gagal menyegarkan cache:', err.message);
+    }
+    next();
+  });
 
   app.use('/api', express.json({ limit: '2mb' }), sameOrigin, apiLimiter);
   app.use(

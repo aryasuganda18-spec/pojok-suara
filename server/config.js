@@ -1,3 +1,4 @@
+import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
@@ -14,6 +15,9 @@ const positive = (value, fallback) => {
   const n = Number(value);
   return Number.isFinite(n) && n > 0 ? n : fallback;
 };
+
+// Di Vercel, satu-satunya folder yang boleh ditulis fungsi serverless adalah direktori sementara OS (/tmp).
+const onVercel = Boolean(process.env.VERCEL);
 
 const resolveDir = (value, fallback) => path.resolve(ROOT, value || fallback);
 
@@ -34,9 +38,14 @@ export const config = {
   // Semua data tulisan, pengguna, media, dsb. disimpan di Supabase (lihat server/db/supabase.js).
   // uploadTmpDir HANYA dipakai sebagai tempat singgah sementara sebelum file diunggah ke
   // Supabase Storage (lihat server/middleware/upload.js) — bukan penyimpanan permanen.
-  uploadTmpDir: resolveDir(process.env.UPLOAD_TMP_DIR, 'uploads/tmp'),
+  onVercel,
+  uploadTmpDir: onVercel && !process.env.UPLOAD_TMP_DIR
+    ? path.join(os.tmpdir(), 'pojok-suara-uploads')
+    : resolveDir(process.env.UPLOAD_TMP_DIR, 'uploads/tmp'),
   distDir: path.join(ROOT, 'dist'),
-  trustProxy: parseTrustProxy(process.env.TRUST_PROXY),
+  // Di belakang proxy Vercel, IP pengunjung ada di X-Forwarded-For; tanpa ini pembatas laju melihat
+  // semua pengunjung sebagai satu IP dan mencatat ValidationError di setiap request.
+  trustProxy: process.env.TRUST_PROXY === undefined && onVercel ? 1 : parseTrustProxy(process.env.TRUST_PROXY),
   cookieSecure: ['true', 'false'].includes(process.env.COOKIE_SECURE) ? process.env.COOKIE_SECURE === 'true' : 'auto',
   supabase: {
     url: process.env.SUPABASE_URL || '',
