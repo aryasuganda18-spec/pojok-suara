@@ -5,6 +5,7 @@ import { Field } from '../components/ui';
 import { useSite, useToast } from '../hooks/contexts';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { api, ApiError, errorMessage } from '../lib/api';
+import { prepareImage } from '../lib/image';
 
 const MAX_IMAGE = 5 * 1024 * 1024;
 
@@ -46,7 +47,7 @@ export default function Submit() {
       const form = new FormData();
       for (const [k, v] of Object.entries(values)) form.append(k, String(v));
       form.append('elapsed', String(Date.now() - opened.current));
-      if (image) form.append('image', image);
+      if (image) form.append('image', await prepareImage(image));
       const res = await api<{ message: string }>('/submissions', { method: 'POST', form });
       setDone(res.message);
       window.scrollTo({ top: 0 });

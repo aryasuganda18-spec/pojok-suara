@@ -146,13 +146,17 @@ export async function flushIndex() {
 }
 
 export async function initArticles() {
-  index.clear();
+  // Baca semuanya dulu, baru tukar indeks sekaligus (tanpa await di tengah) supaya request yang
+  // masuk saat memuat ulang tidak pernah melihat daftar artikel yang kosong.
+  const loaded = [];
   for (const [type, collection] of Object.entries(collections)) {
     for (const article of await collection.list()) {
       if (article.type !== type) continue; // jaga-jaga bila tipe berubah tapi masih tersimpan di koleksi lama
-      index.set(article.id, derive(toEntry(article)));
+      loaded.push(article);
     }
   }
+  index.clear();
+  for (const article of loaded) index.set(article.id, derive(toEntry(article)));
   rebuildSlugMap();
 }
 

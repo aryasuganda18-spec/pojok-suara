@@ -4,6 +4,7 @@ import { removeTempFiles, restoreUpload } from '../../middleware/upload.js';
 import { dashboardStats, deleteArticle, demoIds, flushIndex } from '../../services/articles.js';
 import { backupPath, createBackup, deleteBackup, listBackups, restoreBackup } from '../../services/backup.js';
 import { bootServices } from '../../services/boot.js';
+import { markChanged } from '../../services/sync.js';
 import { logActivity, readLogs, recentActivity } from '../../services/logger.js';
 import { listMedia, removeMedia } from '../../services/media.js';
 import { listAuthors, removeAuthor } from '../../services/authors.js';
@@ -63,7 +64,11 @@ async function runRestore(req, res, zipPath) {
       await flushStats();
       await flushIndex();
     },
-    onSwapped: bootServices,
+    onSwapped: async () => {
+      await bootServices();
+      await markChanged('core');
+      await markChanged('comments');
+    },
   });
   await logActivity({ user: req.user, action: 'backup.restore', detail: `pengaman: ${result.safety_backup}`, ip: req.ip });
   res.json({ ok: true, ...result, message: 'Data berhasil dipulihkan. Silakan masuk kembali bila sesi Anda berakhir.' });

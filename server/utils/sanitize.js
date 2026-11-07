@@ -22,6 +22,13 @@ const options = {
   allowedStyles: { '*': textAlign },
   allowedClasses: { code: [/^language-[\w-]+$/] },
   allowedSchemes: ['http', 'https', 'mailto', 'tel'],
+  // Terapkan pemeriksaan skema URL pada seluruh atribut yang dapat memuat URL.
+  allowedSchemesAppliedToAttributes: [
+    'href', 'src', 'cite', 'action', 'formaction', 'data', 'poster', 'background',
+    'ping', 'xlink:href', 'dynsrc', 'lowsrc',
+  ],
+  // Pertahankan elemen raw-text berbahaya sebagai konten yang dibuang sepenuhnya.
+  nonTextTags: ['style', 'script', 'textarea', 'option', 'xmp'],
   allowedSchemesByTag: { img: ['http', 'https'] },
   allowProtocolRelative: false,
   allowedIframeHostnames: ['www.youtube.com', 'www.youtube-nocookie.com'],
