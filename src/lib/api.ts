@@ -56,7 +56,8 @@ export async function api<T = unknown>(path: string, { method = 'GET', body, for
   if (!res.ok) {
     const info = (data ?? {}) as { error?: string; details?: ApiError['details'] };
     if (res.status === 401 && path !== '/auth/login' && path !== '/auth/session') sessionExpiredListeners.forEach((fn) => fn());
-    throw new ApiError(res.status, info.error ?? `Permintaan gagal (${res.status})`, info.details);
+    const fallback = res.status === 413 ? 'Ukuran file terlalu besar untuk dikirim. Perkecil file lalu coba lagi.' : `Permintaan gagal (${res.status})`;
+    throw new ApiError(res.status, info.error ?? fallback, info.details);
   }
   return data as T;
 }
